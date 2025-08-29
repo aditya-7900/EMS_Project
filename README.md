@@ -73,7 +73,6 @@ Install required libraries:
 
 pip install pymysql pandas
 
-
 Install MySQL and create a database using:
 
 CREATE DATABASE ems_project;
