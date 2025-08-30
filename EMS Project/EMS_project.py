@@ -1,9 +1,13 @@
 # ---------------- This Is Made By Aditya Bobade ----------------  #
 
-from tkinter import Toplevel, messagebox, ttk, Button, CENTER, LEFT, Tk, Label, Entry, StringVar
+import tkinter as tk
+from tkinter import Toplevel, messagebox, ttk, Button, CENTER, LEFT, Tk, Label, Entry, StringVar, filedialog
 from PIL import Image, ImageTk
 import pymysql
 import re
+import csv
+import pandas as pd
+
 # from tkinter import *
 
 # ---------------- DATABASE CONNECTION ----------------  #
@@ -356,6 +360,189 @@ def clear_data():
     view.delete(*view.get_children())
 
 
+# ----------- IMPORT EXCEL FILE -----------
+
+
+def import_excel():
+    try:
+        file_path = filedialog.askopenfilename(
+            filetypes=[("Excel files", "*.xlsx *.xls")]
+        )
+        if not file_path:
+            return
+
+        # Read excel file
+        df = pd.read_excel(file_path)
+
+        # Debug: Show available columns
+        print("Columns in Excel:", df.columns.tolist())
+
+        required_cols = ["ID", "Name", "Mobile No", "Department", "Salary"]
+        missing = [col for col in required_cols if col not in df.columns]
+
+        if missing:
+            messagebox.showerror(
+                "Error", f"Missing columns: {', '.join(missing)}")
+            return
+
+        # Clear existing Treeview data
+        view.delete(*view.get_children())
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        for _, row in df.iterrows():
+            emp_id = row["ID"]
+            emp_name = row["Name"]
+            emp_mob = row["Mobile No"]
+            emp_dept = row["Department"]
+            emp_salary = row["Salary"]
+
+            # Insert into Treeview
+            view.insert("", "end", values=(
+                emp_id, emp_name, emp_mob, emp_dept, emp_salary))
+
+            # Insert into Database
+            cursor.execute("INSERT INTO emp_db (emp_id, emp_name, mob_no, emp_dept, emp_salary) VALUES (%s, %s, %s, %s, %s)",
+                           (emp_id, emp_name, emp_mob, emp_dept, emp_salary)
+                           )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        messagebox.showinfo(
+            "Success", "Data imported successfully into database")
+
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+# ----------- IMPORT CSV FILE -----------
+
+
+def import_csv():
+    try:
+        file_path = filedialog.askopenfilename(
+            filetypes=[("CSV files", "*.csv")]
+        )
+        if not file_path:
+            return
+
+        # Read CSV file
+        df = pd.read_csv(file_path)
+
+        # Debug: Show available columns
+        print("Columns in CSV:", df.columns.tolist())
+
+        required_cols = ["ID", "Name", "Mobile No", "Department", "Salary"]
+        missing = [col for col in required_cols if col not in df.columns]
+
+        if missing:
+            messagebox.showerror(
+                "Error", f"Missing columns: {', '.join(missing)}")
+            return
+
+        # Clear existing Treeview data
+        view.delete(*view.get_children())
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        for _, row in df.iterrows():
+            emp_id = row["ID"]
+            emp_name = row["Name"]
+            emp_mob = row["Mobile No"]
+            emp_dept = row["Department"]
+            emp_salary = row["Salary"]
+
+            # Insert into Treeview
+            view.insert("", "end", values=(
+                emp_id, emp_name, emp_mob, emp_dept, emp_salary))
+
+            # Insert into Database
+            cursor.execute(
+                "INSERT INTO emp_db (emp_id, emp_name, mob_no, emp_dept, emp_salary) VALUES (%s, %s, %s, %s, %s)",
+                (emp_id, emp_name, emp_mob, emp_dept, emp_salary)
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        messagebox.showinfo(
+            "Success", "CSV Data imported successfully into database")
+
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+# ----------- EXPORT EXCEL FILE -----------
+
+def export_excel():
+    try:
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx")]
+        )
+        if not file_path:
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT emp_id, emp_name, mob_no, emp_dept, emp_salary FROM emp_db")
+        rows = cursor.fetchall()
+        conn.close()
+
+        columns = ["ID", "Name", "Mobile No", "Department", "Salary"]
+        df = pd.DataFrame(rows, columns=columns)
+
+        df.to_excel(file_path, index=False)
+
+        messagebox.showinfo(
+            "Success", f"Data exported successfully to {file_path}")
+
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+# --------------- EXPORT CSV FILE ----------------
+
+def export_csv():
+    try:
+        # Choose file path to save
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv")]
+        )
+        if not file_path:
+            return
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Fetch all records
+        cursor.execute(
+            "SELECT emp_id, emp_name, mob_no, emp_dept, emp_salary FROM emp_db")
+        rows = cursor.fetchall()
+        conn.close()
+
+        # Define column headers
+        columns = ["ID", "Name", "Mobile No", "Department", "Salary"]
+
+        # Create DataFrame
+        df = pd.DataFrame(rows, columns=columns)
+
+        # Save to CSV
+        df.to_csv(file_path, index=False)
+
+        messagebox.showinfo(
+            "Success", f"Data exported successfully to {file_path}")
+
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
 # ---------------- GUI SECTION ----------------
 
 
@@ -373,13 +560,13 @@ bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 # Main // Heading Label
 l0 = Label(
     win,
-    text="EMPLOYEE MANAGEMENT SYSTEM",
+    text="◈  EMPLOYEE  MANAGEMENT  SYSTEM  ◈",
     bg="white",
     fg="black",
     width=40,
-    bd=5,
-    relief="sunken",  # We Also Can Use This Designs Also >>> "flat","groove","raised","ridge","solid","sunken"
-    font=("times new roman", 18, "bold")
+    bd=8,
+    relief="ridge",  # We Also Can Use This Designs Also >>> "flat","groove","raised","ridge","solid","sunken"
+    font=("Georgia Bold", 17)
 )
 # Place Main // Heading Label (top-middle)
 l0.pack(anchor="center", pady=40)
@@ -707,6 +894,99 @@ b7 = Button(
 )
 b7.place(x=400, y=695)
 
+# Label --------------------- IMPORT DATA --------------------- #
+l9 = Label(
+    win,
+    text="IMPORT DATA",
+    bg="white",
+    fg="black",
+    width=20,
+    height=1,
+    bd=5,
+    relief="ridge",
+    font=("Merriweather", 14, "bold")
+)
+l9.place(x=725, y=580)
+
+
+# Label --------------------- EXPORT DATA --------------------- #
+
+l10 = Label(
+    win,
+    text="EXPORT DATA",
+    bg="white",
+    fg="black",
+    width=20,
+    height=1,
+    bd=5,
+    relief="ridge",
+    font=("Merriweather", 14, "bold")
+)
+l10.place(x=1225, y=580)
+
+# Button --------------- IMPORT EXCEL FILE ---------------
+
+
+b11 = tk.Button(win,
+                text="IMPORT EXCEL FILE",
+                command=import_excel,
+                relief="ridge",
+                bg="green",
+                fg="white",
+                bd=4,
+                font=("times new roman", 12, "bold"),
+                width=20
+                )
+b11.place(x=750, y=640)
+
+
+# Button --------------- IMPORT CSV FILE ---------------
+
+
+b12 = tk.Button(win,
+                text="IMPORT CSV FILE",
+                command=import_csv,
+                relief="ridge",
+                bg="green",
+                fg="white",
+                bd=4,
+                font=("times new roman", 12, "bold"),
+                width=20
+                )
+b12.place(x=750, y=700)
+
+
+# Button --------------- EXPORT CSV FILE ---------------
+
+
+b13 = tk.Button(win,
+                text="EXPORT EXCEL FILE",
+                command=export_excel,
+                relief="ridge",
+                bg="green",
+                fg="white",
+                bd=4,
+                font=("times new roman", 12, "bold"),
+                width=20
+                )
+b13.place(x=1250, y=640)
+
+
+# Button --------------- EXPORT CSV FILE ---------------
+
+
+b14 = tk.Button(win,
+                text="EXPORT CSV FILE",
+                command=export_csv,
+                relief="ridge",
+                bg="green",
+                fg="white",
+                bd=4,
+                font=("times new roman", 12, "bold"),
+                width=20
+                )
+b14.place(x=1250, y=700)
+
 
 # ---------------- View Data >>> Treeview Box ---------------- #
 
@@ -754,8 +1034,8 @@ def block_event(event):
 view.bind("<Button-1>", block_event)
 
 # Alternate Row Colors
-view.tag_configure("evenrow", background="#FAFAFA")  # very light grey
-view.tag_configure("oddrow", background="#E0E0E0")   # medium grey
+view.tag_configure("oddrow", background="#FAFAFA")  # very light grey
+view.tag_configure("evenrow", background="#E0E0E0")   # medium grey
 view.configure(selectmode="browse")  # single row selection
 
 
@@ -778,17 +1058,6 @@ win.state('zoomed')
 bg_label.lower()
 win.mainloop()
 
-
 # ---------------- This Is Made By Aditya Bobade ----------------  #
 
-
-# Task >>> Upload project on Git-Hub
-# 1. Create a new repository on GitHub
-# 2. Initialize git in your project directory
-# 3. Add your files to the staging area
-# 4. Commit your changes
-# 5. Link your local repository to the GitHub repository
-# 6. Push your changes to GitHub
-
-
-# Task2 >>> Insert an Image in EMS UI background
+# All Rights Reserved 
